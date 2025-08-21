@@ -24,11 +24,10 @@ git clone https://github.com/AndNovv/voice-recognition-dice-poker.git
 npm install
 ```
 
-3. Запустите сервер разработки:
-
-```bash
-npm start
-```
+3. Запуск команд:
+- Сервер разработки: `npm run dev`
+- Сборка проекта: `npm run build`
+- Просмотр собранного проекта: `npm run preview`
 
 ## Использование
 
