@@ -172,30 +172,41 @@ export default function App() {
   const processCommand = (raw: string) => {
     const tokens = tokenize(raw);
 
-    const pickedPlayer = pickPlayerAtStart(playersRef.current, tokens);
-    if (!pickedPlayer) return;
-    const restAfterPlayer = tokens.slice(pickedPlayer.used);
+    // перебираем все возможные позиции старта
+    for (let i = 0; i < tokens.length; i++) {
+      const subTokens = tokens.slice(i);
 
-    const pickedCombo = pickComboAtStart(restAfterPlayer);
-    if (!pickedCombo) return;
-    const restAfterCombo = restAfterPlayer.slice(pickedCombo.used);
+      const pickedPlayer = pickPlayerAtStart(playersRef.current, subTokens);
+      if (!pickedPlayer) continue;
 
-    const pickedPoints = pickPointsAtStart(restAfterCombo);
-    if (!pickedPoints) return;
+      const restAfterPlayer = subTokens.slice(pickedPlayer.used);
 
-    // Сохраняем историю
-    saveToHistory(playersRef.current);
+      const pickedCombo = pickComboAtStart(restAfterPlayer);
+      if (!pickedCombo) continue;
 
-    setPlayers((prev) =>
-      prev.map((p) =>
-        p.name === pickedPlayer.player.name
-          ? {
-              ...p,
-              scores: { ...p.scores, [pickedCombo.combo]: pickedPoints.points }
-            }
-          : p
-      )
-    );
+      const restAfterCombo = restAfterPlayer.slice(pickedCombo.used);
+
+      const pickedPoints = pickPointsAtStart(restAfterCombo);
+      if (!pickedPoints) continue;
+
+      // Сохраняем историю
+      saveToHistory(playersRef.current);
+
+      setPlayers((prev) =>
+        prev.map((p) =>
+          p.name === pickedPlayer.player.name
+            ? {
+                ...p,
+                scores: {
+                  ...p.scores,
+                  [pickedCombo.combo]: pickedPoints.points
+                }
+              }
+            : p
+        )
+      );
+      return;
+    }
   };
 
   useEffect(() => {
@@ -315,47 +326,51 @@ export default function App() {
 
       <section>
         <div className="w-full flex justify-center gap-10 overflow-auto">
-          <table className="border border-gray-300 rounded-xl overflow-hidden min-w-1/3">
-            <thead>
-              <tr className="bg-gray-50">
-                <th className="border border-gray-300 p-2">Комбинация</th>
-                {players.map((p) => (
-                  <th key={p.name} className="border border-gray-300 p-2">
-                    {p.name}
-                  </th>
+          <div className="rounded-2xl border border-gray-300 shadow overflow-hidden min-w-1/3">
+            <table className="w-full">
+              <thead>
+                <tr className="bg-gray-50">
+                  <th className="border border-gray-300 p-2">Комбинация</th>
+                  {players.map((p) => (
+                    <th key={p.name} className="border border-gray-300 p-2">
+                      {p.name}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {COMBINATIONS.map((c) => (
+                  <tr key={c} className="odd:bg-white even:bg-gray-50">
+                    <td className="border border-gray-300 p-2">{c}</td>
+                    {players.map((p) => (
+                      <td
+                        key={p.name}
+                        className="border border-gray-300 p-2 text-center"
+                      >
+                        {p.scores[c] ?? ''}
+                      </td>
+                    ))}
+                  </tr>
                 ))}
-              </tr>
-            </thead>
-            <tbody>
-              {COMBINATIONS.map((c) => (
-                <tr key={c} className="odd:bg-white even:bg-gray-50">
-                  <td className="border border-gray-300 p-2">{c}</td>
+                <tr>
+                  <td className="border border-gray-300 p-2 font-bold">
+                    Итого
+                  </td>
                   {players.map((p) => (
                     <td
                       key={p.name}
-                      className="border border-gray-300 p-2 text-center"
+                      className="border border-gray-300 p-2 text-center font-bold"
                     >
-                      {p.scores[c] ?? ''}
+                      {Object.values(p.scores).reduce(
+                        (sum: number, val) => sum + (val ?? 0),
+                        0
+                      )}
                     </td>
                   ))}
                 </tr>
-              ))}
-              <tr>
-                <td className="border border-gray-300 p-2 font-bold">Итого</td>
-                {players.map((p) => (
-                  <td
-                    key={p.name}
-                    className="border border-gray-300 p-2 text-center font-bold"
-                  >
-                    {Object.values(p.scores).reduce(
-                      (sum: number, val) => sum + (val ?? 0),
-                      0
-                    )}
-                  </td>
-                ))}
-              </tr>
-            </tbody>
-          </table>
+              </tbody>
+            </table>
+          </div>
           <div className="flex flex-col justify-between gap-6 py-2 w-[400px]">
             <div className="flex flex-col gap-6">
               <AddNewPlayerForm addPlayer={addPlayer} />
@@ -410,7 +425,7 @@ export default function App() {
                   ⏹ Стоп
                 </button>
               )}
-              <div className="">
+              <div>
                 <button
                   onClick={undo}
                   className="bg-red-500 text-white px-4 py-2 rounded mr-2 disabled:opacity-50"
